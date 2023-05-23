@@ -1,0 +1,45 @@
+const gremlin = require('gremlin');
+const DriverRemoteConnection = gremlin.driver.DriverRemoteConnection;
+const Graph = gremlin.structure.Graph;
+const { __ } = gremlin.process;
+
+// Specify the Neptune endpoint and port
+const neptuneEndpoint = 'database-4.cluster-coekmkpgzglx.us-east-1.neptune.amazonaws.com';
+const neptunePort = 8182;
+
+// Create a remote connection to Neptune using WebSockets
+const connection = new DriverRemoteConnection(`wss://${neptuneEndpoint}:${neptunePort}/gremlin`, {});
+const graph = new Graph();
+const g = graph.traversal().withRemote(connection);
+
+// Function to add an edge from the 'user' vertex to a 'Website' vertex
+const addEdgeToUserVertex = async () => {
+  // Add a 'Website' vertex with a URL property
+  await g.addV('Website').property('url', 'betelhemgebresilasse.com').next();
+  
+  // Find the 'Website' vertex with the specified URL
+  const websiteVertex = await g.V().has('Website', 'url', 'betelhemgebresilasse.com').next();
+
+  // Add an edge named 'sendMessage' from the 'user' vertex to the 'Website' vertex
+  await g.V('user')
+    .addE('sendMessage')
+    .to(websiteVertex.value)
+    .property('label', 'sendMessage')
+    .next();
+
+  return 'Edge added successfully';
+};
+
+exports.handler = async (event) => {
+  try {
+    // Call the addEdgeToUserVertex function to add the edge
+    const result = await addEdgeToUserVertex();
+    console.log('Result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error:', error);
+    return error.message;
+  }
+};
+
+
