@@ -1,0 +1,53 @@
+const gremlin = require('gremlin');
+const DriverRemoteConnection = gremlin.driver.DriverRemoteConnection;
+const Graph = gremlin.structure.Graph;
+
+// Define the Neptune database endpoint
+const endpoint = 'wss://database-4.cluster-coekmkpgzglx.us-east-1.neptune.amazonaws.com:8182/gremlin';
+const dc = new DriverRemoteConnection(endpoint, {});
+
+const graph = new Graph();
+const g = graph.traversal().withRemote(dc);
+
+const { t, cardinality } = gremlin.process;
+const { id, single } = t;
+
+// Function to create a new vertex with the given email as a property
+const createVertex = async (email) => {
+  const vertexId = 'user';
+  const vlabel = 'user';
+
+  // Add a new vertex with the 'user' label, 'id' property, and 'email' property
+  const vertex = await g.addV(vlabel)
+    .property(id, vertexId)
+    .property('email', email)
+    .next();
+
+  return vertex.value;
+};
+
+exports.handler = async (event) => {
+  try {
+    console.log("Event payload:", JSON.stringify(event));
+
+    // Extract the email from the event payload
+    const email = event.request.userAttributes.email;
+    console.log("Email :", email);
+
+    // Call the 'createVertex' function to create a user vertex with the email property
+    const result = await createVertex(email);
+
+    console.log("Vertex created successfully:", result);
+    
+    // Return a success response with a status code and message
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "User created successfully" })
+    };
+  } catch (error) {
+    console.log("---error---", error);
+    throw error;
+  }
+};
+
+
